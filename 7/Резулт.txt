@@ -1,0 +1,17 @@
+test_create_order_success (__main__.TestOrderServiceCreateOrder) ... ok
+test_create_order_with_none_user_id (__main__.TestOrderServiceCreateOrder) ... ok
+test_create_order_with_empty_items (__main__.TestOrderServiceCreateOrder) ... ok
+...
+test_process_payment_success (__main__.TestOrderServiceProcessPayment) ... ok
+...
+test_cancel_paid_order_with_refund (__main__.TestOrderServiceCancelOrder) ... ok
+...
+
+======================================================================
+TEST COVERAGE SUMMARY
+======================================================================
+Tests run: 35
+Failures: 0
+Errors: 0
+Success: True
+======================================================================
