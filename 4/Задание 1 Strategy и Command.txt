@@ -1,0 +1,74 @@
+# ==============================================================================
+# 3. PATTERNS: STRATEGY (Скидки)
+# ==============================================================================
+class DiscountStrategy(ABC):
+    @abstractmethod
+    def apply_discount(self, total_amount: float) -> float: pass
+
+class RegularDiscount(DiscountStrategy):
+    def apply_discount(self, total_amount: float) -> float:
+        return total_amount # Без скидки
+
+class VipDiscount(DiscountStrategy):
+    def apply_discount(self, total_amount: float) -> float:
+        return total_amount * 0.9 # 10% скидка
+
+# ✅ ТРЕБОВАНИЕ 3: Стратегия "Подарочный сертификат" (фиксированная скидка 1000 руб.)
+class GiftCertificateDiscount(DiscountStrategy):
+    def __init__(self, certificate_value: float = 1000.0):
+        self.certificate_value = certificate_value
+
+    def apply_discount(self, total_amount: float) -> float:
+        discounted = total_amount - self.certificate_value
+        return max(0.0, discounted) # Сумма не может быть отрицательной
+
+# Контекст для применения стратегии
+class DiscountContext:
+    def __init__(self, strategy: DiscountStrategy):
+        self._strategy = strategy
+
+    def set_strategy(self, strategy: DiscountStrategy):
+        self._strategy = strategy
+
+    def calculate_final_price(self, amount: float) -> float:
+        return self._strategy.apply_discount(amount)
+
+# ==============================================================================
+# 4. PATTERNS: COMMAND (Действия с корзиной с поддержкой Undo)
+# ==============================================================================
+class Command(ABC):
+    @abstractmethod
+    def execute(self): pass
+    
+    @abstractmethod
+    def undo(self): pass
+
+class ClearCartCommand(Command):
+    def __init__(self, cart: list):
+        self._cart = cart
+        self._previous_state = [] # Для хранения состояния до очистки
+
+    def execute(self):
+        print("🧹 Очистка корзины...")
+        self._previous_state = self._cart.copy() # Сохраняем копию для отмены
+        self._cart.clear()
+        print(f"   Корзина очищена. Было товаров: {len(self._previous_state)}")
+
+    def undo(self):
+        print("↩️ Отмена очистки корзины...")
+        self._cart.extend(self._previous_state)
+        print(f"   Восстановлено товаров: {len(self._cart)}")
+
+# Демонстрация Command
+def test_cart_command():
+    my_cart = ["Ноутбук", "Мышь", "Клавиатура"]
+    print(f"\nИсходная корзина: {my_cart}")
+    
+    command = ClearCartCommand(my_cart)
+    command.execute()
+    print(f"Корзина после очистки: {my_cart}")
+    
+    command.undo()
+    print(f"Корзина после undo(): {my_cart}")
+
+test_cart_command()

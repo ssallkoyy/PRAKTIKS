@@ -1,0 +1,133 @@
+from abc import ABC, abstractmethod
+from typing import List
+
+# ==============================================================================
+# 1. PATTERNS: STATE (Состояния заказа)
+# ==============================================================================
+class OrderState(ABC):
+    @abstractmethod
+    def pay(self, order: 'Order'): pass
+    
+    @abstractmethod
+    def ship(self, order: 'Order'): pass
+    
+    @abstractmethod
+    def return_order(self, order: 'Order'): pass
+
+class NewState(OrderState):
+    def pay(self, order: Order):
+        print("💳 Оплата прошла успешно.")
+        order.set_state(PaidState())
+        order.notify("ОПЛАЧЕН")
+        
+    def ship(self, order: Order):
+        print("❌ Нельзя отправить неоплаченный заказ.")
+        
+    def return_order(self, order: Order):
+        print("❌ Нельзя вернуть заказ, который еще не оформлен.")
+
+class PaidState(OrderState):
+    def pay(self, order: Order):
+        print("⚠️ Заказ уже оплачен.")
+        
+    def ship(self, order: Order):
+        print("🚚 Заказ передан в службу доставки.")
+        order.set_state(ShippedState())
+        order.notify("ОТПРАВЛЕН")
+        
+    def return_order(self, order: Order):
+        print("🔄 Инициирован возврат средств. Заказ отменен.")
+        order.set_state(ReturnedState())
+        order.notify("ВОЗВРАТ")
+
+class ShippedState(OrderState):
+    def ship(self, order: Order):
+        print("📦 Заказ доставлен курьером.")
+        order.set_state(DeliveredState())
+        order.notify("ДОСТАВЛЕН")
+        
+    def return_order(self, order: Order):
+        print("🔄 Заказ отозван из службы доставки. Оформлен возврат.")
+        order.set_state(ReturnedState())
+        order.notify("ВОЗВРАТ")
+
+class DeliveredState(OrderState):
+    def return_order(self, order: Order):
+        print("🔄 Возврат оформлен. Деньги будут возвращены в течение 3 дней.")
+        order.set_state(ReturnedState())
+        order.notify("ВОЗВРАТ")
+
+# ✅ ТРЕБОВАНИЕ 1: Новое состояние "ВОЗВРАТ"
+class ReturnedState(OrderState):
+    def pay(self, order: Order):
+        print("❌ Нельзя оплатить заказ, который находится в возврате.")
+    def ship(self, order: Order):
+        print("❌ Нельзя отправить заказ, который возвращен.")
+    def return_order(self, order: Order):
+        print("⚠️ Заказ уже находится в состоянии возврата.")
+
+# ==============================================================================
+# 2. PATTERNS: OBSERVER (Система уведомлений)
+# ==============================================================================
+class INotifier(ABC):
+    @abstractmethod
+    def send(self, message: str): pass
+
+class EmailNotifier(INotifier):
+    def send(self, message: str):
+        print(f"   📧 [Email] Отправлено: {message}")
+
+class SMSNotifier(INotifier):
+    def send(self, message: str):
+        print(f"   📱 [SMS] Отправлено: {message}")
+
+# ✅ ТРЕБОВАНИЕ 2: Новый тип уведомлений Telegram
+class TelegramNotifier(INotifier):
+    def send(self, message: str):
+        print(f"   ✈️ [Telegram] Отправлено: {message}")
+
+class Order(ABC): # Упрощенный Subject
+    def __init__(self, order_id: str):
+        self.order_id = order_id
+        self._state: OrderState = NewState()
+        self._observers: List[INotifier] = []
+
+    def subscribe(self, observer: INotifier):
+        self._observers.append(observer)
+
+    def unsubscribe(self, observer: INotifier):
+        self._observers.remove(observer)
+
+    def notify(self, status: str):
+        message = f"Заказ #{self.order_id}: статус изменен на {status}"
+        for observer in self._observers:
+            observer.send(message)
+
+    def set_state(self, state: OrderState):
+        self._state = state
+
+    # Методы-делегаты
+    def pay(self): self._state.pay(self)
+    def ship(self): self._state.ship(self)
+    def return_order(self): self._state.return_order(self)
+
+# ==============================================================================
+# ДЕМОНСТРАЦИЯ РАБОТЫ
+# ==============================================================================
+def test_order_lifecycle():
+    order = Order("ORD-123")
+    
+    # Подписка на уведомления
+    order.subscribe(EmailNotifier())
+    order.subscribe(TelegramNotifier()) # Telegram добавлен
+    
+    print("--- Начало жизненного цикла ---")
+    order.pay()      # New -> Paid (уведомление: ОПЛАЧЕН)
+    order.ship()     # Paid -> Shipped (уведомление: ОТПРАВЛЕН)
+    order.return_order() # Shipped -> Returned (уведомление: ВОЗВРАТ)
+    
+    print("\n--- Проверка блокировок в состоянии Returned ---")
+    order.pay()      # Должно быть запрещено
+    order.ship()     # Должно быть запрещено
+
+test_order_lifecycle()
