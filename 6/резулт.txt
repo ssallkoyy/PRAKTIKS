@@ -1,0 +1,113 @@
+ИСТОРИЯ КОММИТОВ TDD (Red → Green → Refactor)
+
+# ===== TDD CYCLE 1: Minimum Length =====
+git commit -m "TDD Step 1: Add minimum length validation
+RED: Write test for 8 character minimum
+GREEN: Implement len(password) >= 8 check
+REFACTOR: None needed"
+
+# ===== TDD CYCLE 2: Uppercase Letter =====
+git commit -m "TDD Step 2: Add uppercase letter requirement
+RED: Write test for uppercase requirement
+GREEN: Add any(c.isupper() for c in password) check
+REFACTOR: None needed"
+
+# ===== TDD CYCLE 3: Digit =====
+git commit -m "TDD Step 3: Add digit requirement
+RED: Write test for digit requirement
+GREEN: Add any(c.isdigit() for c in password) check
+REFACTOR: None needed"
+
+# ===== TDD CYCLE 4: Special Character =====
+git commit -m "TDD Step 4: Add special character requirement
+RED: Write test for special chars (!@#$%^&*)
+GREEN: Add any(c in SPECIAL_CHARS for c in password)
+REFACTOR: Extract SPECIAL_CHARS constant"
+
+# ===== TDD CYCLE 5: No Spaces =====
+git commit -m "TDD Step 5: Add no spaces requirement
+RED: Write test for space validation
+GREEN: Add ' ' not in password check
+REFACTOR: Move space check before other validations"
+
+# ===== TDD CYCLE 6: Lowercase Letter =====
+git commit -m "TDD Step 6: Add lowercase letter requirement
+RED: Write test for lowercase requirement
+GREEN: Add any(c.islower() for c in password) check
+REFACTOR: None needed"
+
+# ===== TDD CYCLE 7: None Handling =====
+git commit -m "TDD Step 7: Handle None value
+RED: Write test for None password
+GREEN: Add None check at start of validate()
+REFACTOR: None needed"
+
+# ===== TDD CYCLE 8: Empty String =====
+git commit -m "TDD Step 8: Handle empty string
+RED: Write test for empty password
+GREEN: Empty string fails length check automatically
+REFACTOR: None needed"
+
+# ===== TDD CYCLE 9: Complete Valid Password =====
+git commit -m "TDD Step 9: Test complete valid passwords
+RED: Write test for fully valid passwords
+GREEN: All requirements already implemented
+REFACTOR: Add multiple valid password examples"
+
+# ===== TDD CYCLE 10: Validation Errors =====
+git commit -m "TDD Step 10: Add get_validation_errors() method
+RED: Write test for detailed error messages
+GREEN: Implement get_validation_errors() method
+REFACTOR: Extract error messages to separate method"
+
+# ===== TDD CYCLE 11: Refactoring =====
+git commit -m "TDD Step 11: Major refactoring
+RED: N/A (refactoring phase)
+GREEN: All tests still pass
+REFACTOR: 
+  - Extract private _check_* methods
+  - Add docstrings to all methods
+  - Use constants MIN_LENGTH and SPECIAL_CHARS
+  - Improve code readability"
+
+# ===== TDD CYCLE 12: Edge Cases =====
+git commit -m "TDD Step 12: Add edge case tests
+RED: Write tests for edge cases (unicode, tabs, etc.)
+GREEN: All edge cases handled correctly
+REFACTOR: Create separate test class for edge cases"
+
+
+
+
+РЕЗУЛЬТАТ:
+
+test_step1_password_minimum_length (__main__.TestPasswordValidatorTDD) ... ok
+test_step2_password_requires_uppercase (__main__.TestPasswordValidatorTDD) ... ok
+test_step3_password_requires_digit (__main__.TestPasswordValidatorTDD) ... ok
+test_step4_password_requires_special_char (__main__.TestPasswordValidatorTDD) ... ok
+test_step5_password_no_spaces (__main__.TestPasswordValidatorTDD) ... ok
+test_step6_password_requires_lowercase (__main__.TestPasswordValidatorTDD) ... ok
+test_step7_password_none_value (__main__.TestPasswordValidatorTDD) ... ok
+test_step8_password_empty_string (__main__.TestPasswordValidatorTDD) ... ok
+test_step9_complete_valid_password (__main__.TestPasswordValidatorTDD) ... ok
+test_step10_get_validation_errors (__main__.TestPasswordValidatorTDD) ... ok
+test_step10_get_validation_errors_empty_for_valid (__main__.TestPasswordValidatorTDD) ... ok
+test_step10_get_validation_errors_none (__main__.TestPasswordValidatorTDD) ... ok
+test_step11_password_exactly_minimum_length (__main__.TestPasswordValidatorTDD) ... ok
+test_step11_password_very_long (__main__.TestPasswordValidatorTDD) ... ok
+test_step11_password_only_special_chars (__main__.TestPasswordValidatorTDD) ... ok
+test_step11_password_only_digits (__main__.TestPasswordValidatorTDD) ... ok
+test_password_with_unicode (__main__.TestPasswordValidatorEdgeCases) ... ok
+test_password_with_tab (__main__.TestPasswordValidatorEdgeCases) ... ok
+test_password_with_newline (__main__.TestPasswordValidatorEdgeCases) ... ok
+test_password_all_special_chars_from_set (__main__.TestPasswordValidatorEdgeCases) ... ok
+test_password_missing_one_requirement (__main__.TestPasswordValidatorEdgeCases) ... ok
+
+======================================================================
+TDD TEST SUMMARY
+======================================================================
+Tests run: 21
+Failures: 0
+Errors: 0
+Success: True
+======================================================================
