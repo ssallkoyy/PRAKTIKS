@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app-deployment
+  labels:
+    app: my-app
+spec:
+  replicas: 3  # Требование: 3 реплики
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: application-container
+        image: nginx:alpine  # Укажите здесь свой образ приложения
+        ports:
+        - containerPort: 80  # Порт, который слушает приложение внутри контейнера
