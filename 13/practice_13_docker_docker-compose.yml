@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # Основное приложение (Java + Spring Boot)
+  app:
+    build:
+      context: ./app # Путь к Dockerfile вашего Spring Boot приложения
+      dockerfile: Dockerfile
+    container_name: spring_boot_app
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres_db:5432/app_db
+      - SPRING_DATASOURCE_USERNAME=postgres_user
+      - SPRING_DATASOURCE_PASSWORD=postgres_pass
+      - SPRING_REDIS_HOST=redis_cache
+      - SPRING_REDIS_PORT=6379
+    depends_on:
+      - postgres_db
+      - redis_cache
+    networks:
+      - app-network
+
+  # СУБД PostgreSQL
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=app_db
+      - POSTGRES_USER=postgres_user
+      - POSTGRES_PASSWORD=postgres_pass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  # Кэш/NoSQL Redis
+  redis_cache:
+    image: redis:7-alpine
+    container_name: redis_cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - app-network
+
+  # Бонус: Панель администрирования pgAdmin
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin_panel
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@university.edu
+      - PGADMIN_DEFAULT_PASSWORD=admin_secret_pass
+    depends_on:
+      - postgres_db
+    networks:
+      - app-network
+
+volumes:
+  pgdata:
+    driver: local
+  redisdata:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge
