@@ -1,0 +1,397 @@
+Перевести все приведенные исходные коды на python и C++ (на С++ дополнительное задание)
+
+
+////////////////////////////////////////////////////////
+Пример 1. SRP: Класс Employee (нарушение и исправление)
+
+Python:
+# Плохо
+class Employee:
+    def calculate_pay(self): pass
+    def save_to_database(self): pass
+    def print_report(self): pass
+
+# Хорошо
+class Employee:
+    def __init__(self, name, salary):
+        self.name = name
+        self.salary = salary
+
+class PayCalculator:
+    @staticmethod
+    def calculate(emp):
+        return emp.salary * 0.87  # пример
+
+class EmployeeRepository:
+    @staticmethod
+    def save(emp):
+        print(f"Saving {emp.name} to DB")
+
+C++://////////////////////////
+
+cpp 
+// Плохо
+class Employee {
+public:
+    double calculatePay() { /* ... */ }
+    void saveToDatabase() { /* ... */ }
+    void printReport() { /* ... */ }
+};
+
+// Хорошо
+class Employee {
+    std::string name;
+    double salary;
+public:
+    Employee(std::string n, double s) : name(n), salary(s) {}
+    std::string getName() const { return name; }
+    double getSalary() const { return salary; }
+};
+
+class PayCalculator {
+public:
+    static double calculate(const Employee& emp) {
+        return emp.getSalary() * 0.87;
+    }
+};
+
+class EmployeeRepository {
+public:
+    static void save(const Employee& emp) {
+        std::cout << "Saving " << emp.getName() << " to DB\n";
+    }
+};
+
+////////////////////////////////////////////////////////
+
+Пример 2. OCP: DiscountStrategy
+
+Python:
+
+python
+from abc import ABC, abstractmethod
+
+class DiscountStrategy(ABC):
+    @abstractmethod
+    def apply(self, amount): pass
+
+class VIPDiscount(DiscountStrategy):
+    def apply(self, amount): return amount * 0.8
+
+class RegularDiscount(DiscountStrategy):
+    def apply(self, amount): return amount * 0.9
+
+class EmployeeDiscount(DiscountStrategy):
+    def apply(self, amount): return amount * 0.7
+
+
+
+C++:////////////////////////////
+
+cpp
+class DiscountStrategy {
+public:
+    virtual double apply(double amount) const = 0;
+    virtual ~DiscountStrategy() = default;
+};
+
+class VIPDiscount : public DiscountStrategy {
+public:
+    double apply(double amount) const override { return amount * 0.8; }
+};
+
+class RegularDiscount : public DiscountStrategy {
+public:
+    double apply(double amount) const override { return amount * 0.9; }
+};
+
+class EmployeeDiscount : public DiscountStrategy {
+public:
+    double apply(double amount) const override { return amount * 0.7; }
+};
+
+
+////////////////////////////////////////////////////////
+
+Пример 3. LSP: Rectangle и Square (нарушение)
+
+Python:
+
+python
+class Rectangle:
+    def __init__(self):
+        self.width = 0
+        self.height = 0
+    def set_width(self, w): self.width = w
+    def set_height(self, h): self.height = h
+    def get_area(self): return self.width * self.height
+
+class Square(Rectangle):
+    def set_width(self, w):
+        self.width = w
+        self.height = w
+    def set_height(self, h):
+        self.width = h
+        self.height = h
+
+def test_area(r):
+    r.set_width(5)
+    r.set_height(4)
+    assert r.get_area() == 20  # Ошибка для Square
+C++://////////////////////////////
+
+
+cpp
+class Rectangle {
+protected:
+    int width, height;
+public:
+    virtual void setWidth(int w) { width = w; }
+    virtual void setHeight(int h) { height = h; }
+    int getArea() const { return width * height; }
+};
+
+class Square : public Rectangle {
+public:
+    void setWidth(int w) override {
+        width = w;
+        height = w;
+    }
+    void setHeight(int h) override {
+        width = h;
+        height = h;
+    }
+};
+
+void testArea(Rectangle& r) {
+    r.setWidth(5);
+    r.setHeight(4);
+    assert(r.getArea() == 20); // Нарушение для Square
+}
+
+
+////////////////////////////////////////////////////////
+
+Пример 4. ISP: Worker (толстый интерфейс)
+
+Python:
+
+python
+from abc import ABC, abstractmethod
+
+# Плохо
+class Worker(ABC):
+    @abstractmethod
+    def work(self): pass
+    @abstractmethod
+    def eat(self): pass
+
+class Human(Worker):
+    def work(self): print("Working")
+    def eat(self): print("Eating")
+
+class Robot(Worker):
+    def work(self): print("Working")
+    def eat(self): raise NotImplementedError("Robot doesn't eat")
+
+# Хорошо
+class Workable(ABC):
+    @abstractmethod
+    def work(self): pass
+
+class Eatable(ABC):
+    @abstractmethod
+    def eat(self): pass
+
+class Human(Workable, Eatable):
+    def work(self): print("Working")
+    def eat(self): print("Eating")
+
+class Robot(Workable):
+    def work(self): print("Working")
+C++:
+
+cpp//////////////////////////
+
+// Плохо
+class Worker {
+public:
+    virtual void work() = 0;
+    virtual void eat() = 0;
+    virtual ~Worker() = default;
+};
+
+class Human : public Worker {
+public:
+    void work() override { /* ... */ }
+    void eat() override { /* ... */ }
+};
+
+class Robot : public Worker {
+public:
+    void work() override { /* ... */ }
+    void eat() override { throw std::runtime_error("Robot doesn't eat"); }
+};
+
+// Хорошо
+class Workable {
+public:
+    virtual void work() = 0;
+    virtual ~Workable() = default;
+};
+
+class Eatable {
+public:
+    virtual void eat() = 0;
+    virtual ~Eatable() = default;
+};
+
+class Human : public Workable, public Eatable {
+public:
+    void work() override { /* ... */ }
+    void eat() override { /* ... */ }
+};
+
+class Robot : public Workable {
+public:
+    void work() override { /* ... */ }
+};
+
+
+////////////////////////////////////////////////////////
+Пример 5. DIP: EmailService с инверсией зависимостей
+
+Python:
+
+python
+from abc import ABC, abstractmethod
+
+# Хорошо
+class MessageSender(ABC):
+    @abstractmethod
+    def send(self, msg): pass
+
+class SmtpServer(MessageSender):
+    def send(self, msg): print(f"Sending via SMTP: {msg}")
+
+class TelegramBot(MessageSender):
+    def send(self, msg): print(f"Sending via Telegram: {msg}")
+
+class EmailService:
+    def __init__(self, sender: MessageSender):
+        self.sender = sender
+    def send(self, msg):
+        self.sender.send(msg)
+
+# Использование
+sender = SmtpServer()
+service = EmailService(sender)
+service.send("Hello")
+C++://////////////////////////
+
+cpp
+#include <iostream>
+#include <memory>
+
+class MessageSender {
+public:
+    virtual void send(const std::string& msg) const = 0;
+    virtual ~MessageSender() = default;
+};
+
+class SmtpServer : public MessageSender {
+public:
+    void send(const std::string& msg) const override {
+        std::cout << "Sending via SMTP: " << msg << std::endl;
+    }
+};
+
+class TelegramBot : public MessageSender {
+public:
+    void send(const std::string& msg) const override {
+        std::cout << "Sending via Telegram: " << msg << std::endl;
+    }
+};
+
+class EmailService {
+    std::shared_ptr<MessageSender> sender;
+public:
+    EmailService(std::shared_ptr<MessageSender> s) : sender(s) {}
+    void send(const std::string& msg) const {
+        sender->send(msg);
+    }
+};
+
+// Использование
+auto sender = std::make_shared<SmtpServer>();
+EmailService service(sender);
+service.send("Hello");
+
+////////////////////////////////////////////////////////
+Пример 6. GRASP Information Expert (Order)
+
+
+Python:
+
+python
+class OrderItem:
+    def __init__(self, price):
+        self.price = price
+    def get_price(self):
+        return self.price
+
+class Order:
+    def __init__(self):
+        self.items = []
+    def get_total(self):
+        return sum(item.get_price() for item in self.items)
+C++: /////////////////////////
+
+cpp
+#include <vector>
+#include <numeric>
+
+class OrderItem {
+    double price;
+public:
+    OrderItem(double p) : price(p) {}
+    double getPrice() const { return price; }
+};
+
+class Order {
+    std::vector<OrderItem> items;
+public:
+    void addItem(const OrderItem& item) { items.push_back(item); }
+    double getTotal() const {
+        return std::accumulate(items.begin(), items.end(), 0.0,
+            [](double sum, const OrderItem& item) { return sum + item.getPrice(); });
+    }
+};
+
+
+////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

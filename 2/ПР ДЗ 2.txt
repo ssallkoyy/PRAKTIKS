@@ -1,0 +1,180 @@
+Возьмём класс Trip из проекта «ДоедуЛиЯ?». Его лучше разделить на 3 класса: Trip, TripPricing и TripValidation.
+Trip будет хранить основную информацию о поездке: кто едет, откуда и куда, время, статус и количество мест.
+TripPricing будет отвечать только за расчёт стоимости и распределение оплаты между участниками.
+TripValidation будет проверять ограничения: максимум попутчиков, допустим ли багаж, подходит ли маршрут и соблюдаются ли правила водителя.
+Такое разделение нужно, чтобы каждый класс отвечал за одну задачу. Это упрощает тестирование, поддержку и дальнейшее развитие проекта. Например, если изменится логика расчёта цены, не придётся трогать весь класс поездки. Аналогично, если поменяются правила допуска пассажиров, можно обновить только отдельный класс проверки.
+
+
+//
+
+В этом коде есть несколько проблем: UserService напрямую создает DatabaseConnection, из-за чего нарушается SRP и сильнее сцепляются слои приложения; кроме того, есть жесткая зависимость от конкретной реализации, что усложняет тестирование и замену способа подключения.
+Еще одна проблема — соединение создается заново в каждом методе, хотя для доступа к БД обычно лучше централизовать управление соединением или хотя бы его созданием.
+Чтобы не создавать соединение каждый раз, можно применить Singleton для менеджера/объекта подключения, если по заданию нужен именно один общий экземпляр.
+На практике для реальных систем чаще используют pool/manager, а не один «вечный» connection, но для учебного задания Singleton подходит как ответ.
+Ниже пример переписанного кода с Singleton:
+java
+class DatabaseConnection {
+    private static DatabaseConnection instance;
+
+    private DatabaseConnection() {}
+
+    public static synchronized DatabaseConnection getInstance() {
+        if (instance == null) {
+            instance = new DatabaseConnection();
+        }
+        return instance;
+    }
+
+    public void connect() {
+        // подключение
+    }
+
+    public void query(String sql) {
+        // запрос
+    }
+
+    public void disconnect() {
+        // отключение
+    }
+}
+
+class UserService {
+    public void createUser(String name) {
+        DatabaseConnection conn = DatabaseConnection.getInstance();
+        conn.connect();
+        conn.query("INSERT INTO users ...");
+        conn.disconnect();
+    }
+
+    public void deleteUser(int id) {
+        DatabaseConnection conn = DatabaseConnection.getInstance();
+        conn.connect();
+        conn.query("DELETE FROM users ...");
+        conn.disconnect();
+    }
+}
+
+
+Ниже — разбор по SOLID для вашего задания, с упором на OCP и DIP, плюс переводы на Python и C++.
+1) SRP: пример из жизни
+Пример класса из реальной жизни с лишними обязанностями — администратор небольшого офиса, который одновременно принимает звонки, ведёт записи, заказывает канцтовары, встречает гостей и чинит принтер. Такой человек меняет работу по нескольким причинам сразу, а значит нарушает SRP: у него слишком много обязанностей и слишком много причин для изменения.
+2) OCP: система валидации
+Систему валидации лучше спроектировать так, чтобы добавление новых проверок не требовало переписывать старые. Для этого можно создать общий интерфейс Validator, а конкретные проверки вынести в отдельные классы: EmailValidator, PhoneValidator, AgeValidator.
+Тогда основной код будет работать с абстракцией Validator, а новые правила можно добавлять через новые классы, не меняя существующие.
+Схема классов
+text
+Validator (interface)
+ ├── EmailValidator
+ ├── PhoneValidator
+ └── AgeValidator
+
+ValidationService
+  -> depends on Validator (DIP)
+3) LSP: складной велосипед
+Складной велосипед не стоит наследовать напрямую от обычного Велосипед, если у него меняется поведение настолько, что он перестаёт быть полноценной заменой базового класса.
+Например, если у Bicycle есть метод ride(), а у складного велосипеда перед ездой его нужно обязательно разложить, то подстановка дочернего объекта вместо родительского уже может ломать логику. В таком случае лучше использовать композицию: FoldingBike имеет механизм складывания, а не является просто частным случаем велосипеда.
+4) Report: нарушения SOLID
+Класс Report с методами generateHTML(), generatePDF(), sendEmail() нарушает SRP, потому что он и генерирует отчёт, и форматирует его, и отправляет по почте.
+Он также нарушает OCP: при добавлении нового формата, например DOCX, придётся менять сам класс Report.
+Кроме того, такой класс плохо соответствует DIP, потому что высокоуровневая логика отчёта жёстко зависит от конкретных способов генерации и доставки.
+5) Переписывание на OCP и DIP
+Ниже — вариант, где код зависит от абстракций, а новые форматы и способы отправки добавляются через новые классы.
+Python
+python
+from abc import ABC, abstractmethod
+
+class ReportRenderer(ABC):
+    @abstractmethod
+    def render(self, data):
+        pass
+
+class HtmlRenderer(ReportRenderer):
+    def render(self, data):
+        return f"<html>{data}</html>"
+
+class PdfRenderer(ReportRenderer):
+    def render(self, data):
+        return f"PDF({data})"
+
+class ReportSender(ABC):
+    @abstractmethod
+    def send(self, content):
+        pass
+
+class EmailSender(ReportSender):
+    def send(self, content):
+        print(f"Sending by email: {content}")
+
+class Report:
+    def __init__(self, renderer: ReportRenderer, sender: ReportSender):
+        self.renderer = renderer
+        self.sender = sender
+
+    def generate_and_send(self, data):
+        content = self.renderer.render(data)
+        self.sender.send(content)
+C++
+cpp
+#include <iostream>
+#include <string>
+using namespace std;
+
+class ReportRenderer {
+public:
+    virtual ~ReportRenderer() = default;
+    virtual string render(const string& data) = 0;
+};
+
+class HtmlRenderer : public ReportRenderer {
+public:
+    string render(const string& data) override {
+        return "<html>" + data + "</html>";
+    }
+};
+
+class PdfRenderer : public ReportRenderer {
+public:
+    string render(const string& data) override {
+        return "PDF(" + data + ")";
+    }
+};
+
+class ReportSender {
+public:
+    virtual ~ReportSender() = default;
+    virtual void send(const string& content) = 0;
+};
+
+class EmailSender : public ReportSender {
+public:
+    void send(const string& content) override {
+        cout << "Sending by email: " << content << endl;
+    }
+};
+
+class Report {
+    ReportRenderer* renderer;
+    ReportSender* sender;
+public:
+    Report(ReportRenderer* r, ReportSender* s) : renderer(r), sender(s) {}
+
+    void generateAndSend(const string& data) {
+        string content = renderer->render(data);
+        sender->send(content);
+    }
+};
+6) Схема зависимостей
+text
+Report
+  -> ReportRenderer (abstraction)
+  -> ReportSender (abstraction)
+
+HtmlRenderer / PdfRenderer
+  -> implement ReportRenderer
+
+EmailSender
+  -> implement ReportSender
+Такой подход соответствует OCP: новые форматы и каналы отправки добавляются без изменения Report.
+Он также соответствует DIP: высокоуровневый Report зависит не от деталей, а от интерфейсов.
+
+

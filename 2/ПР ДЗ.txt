@@ -1,0 +1,54 @@
+1поиск нарушений/////////////////////////////////////
+
+ Single Responsibility Principle (SRP) — класс OrderProcessor выполняет сразу несколько задач: валидацию, расчёт скидки, сохранение в БД, отправку email, логирование. Это приводит к тому, что класс сложно поддерживать и тестировать.
+
+Open/Closed Principle (OCP) — логика расчёта скидки жёстко закодирована внутри метода processOrder. Добавление новых правил скидок потребует изменения существующего кода.
+
+Dependency Inversion Principle (DIP) — класс OrderProcessor напрямую зависит от конкретных реализаций (например, вывод в консоль), вместо абстракций. Также отсутствует разделение на модули, что затрудняет замену компонентов (например, отправка email через другой сервис).
+
+1.2 перевести проблемный код на python/////////////////////////////////////
+from typing import List
+
+class Order:
+    def __init__(self, customer_email: str, amount: float, items: List[str]):
+        self.customer_email = customer_email
+        self.amount = amount
+        self.items = items
+
+class OrderProcessor:
+    def process_order(self, order: Order) -> None:
+        # 1. Валидация
+        if order.amount <= 0:
+            raise ValueError("Сумма должна быть положительной")
+        if not order.customer_email or "@" not in order.customer_email:
+            raise ValueError("Некорректный email")
+
+        # 2. Расчёт скидки
+        discount = 0.0
+        if order.amount > 1000:
+            discount = 0.1
+        elif order.amount > 500:
+            discount = 0.05
+        final_amount = order.amount * (1 - discount)
+
+        # 3. Сохранение в БД (симуляция)
+        print(f"INSERT INTO orders (email, amount) VALUES ('{order.customer_email}', {final_amount})")
+
+        # 4. Отправка email
+        print(f"Отправка email на {order.customer_email}: Ваш заказ на сумму {final_amount} принят!")
+
+        # 5. Логирование
+        print(f"Лог: Заказ обработан для {order.customer_email}")
+
+if __name__ == "__main__":
+    order = Order("test@mail.com", 1500, ["Товар1", "Товар2"])
+    processor = OrderProcessor()
+    processor.process_order(order)
+
+/////////////////////////////////////
+
+
+
+
+
+
