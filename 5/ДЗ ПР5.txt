@@ -1,0 +1,111 @@
+"""
+🔐 Потокобезопасный Singleton для подключения к БД (Refactored)
+"""
+import threading
+import logging
+from typing import Optional, Any
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+logger = logging.getLogger(__name__)
+
+# Константы (устранение магических строк и чисел)
+DEFAULT_DB_URL = "jdbc:mysql://localhost/mydb"
+CONNECTION_DELAY_SEC = 0.01
+
+class SingletonMeta(type):
+    """Потокобезопасный метакласс реализации Singleton (Double-Checked Locking)."""
+    _instances = {}
+    _lock: threading.Lock = threading.Lock()
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            with cls._lock:
+                if cls not in cls._instances:
+                    instance = super().__call__(*args, **kwargs)
+                    cls._instances[cls] = instance
+        return cls._instances[cls]
+
+class DatabaseConnection(metaclass=SingletonMeta):
+    """Подключение к базе данных как Singleton."""
+    
+    def __init__(self, url: str = DEFAULT_DB_URL):
+        if getattr(self, '_initialized', False):
+            return
+        
+        self.url = url
+        self._connection: Optional[Any] = None
+        
+        logger.info(f"Создано подключение к {url}")
+        self._init_connection()
+        self._initialized = True
+
+    def _init_connection(self):
+        """Имитация тяжелой инициализации."""
+        threading.Event().wait(CONNECTION_DELAY_SEC)
+        self._connection = f"Connection({self.url})"
+
+    def query(self, sql: str, params: Optional[tuple] = None) -> dict:
+        """Выполнение SQL-запроса с поддержкой параметров (защита от инъекций)."""
+        # В реальном драйвере параметры подставляются безопасно
+        log_params = f" с параметрами {params}" if params else ""
+        logger.info(f"Запрос: {sql}{log_params}")
+        return {"status": "ok", "rows": []}
+
+    def close(self):
+        """Закрытие подключения."""
+        if getattr(self, '_initialized', False):
+            logger.info(f"Закрытие подключения к {self.url}")
+            self._connection = None
+
+class UserService:
+    """Сервис работы с пользователями."""
+    def __init__(self, db_url: str = DEFAULT_DB_URL):
+        self.db_url = db_url
+
+    def create_user(self, name: str) -> dict:
+        conn = DatabaseConnection(self.db_url)
+        # ✅ Безопасный параметризованный запрос
+        result = conn.query("INSERT INTO users (name) VALUES (?)", (name,))
+        logger.info(f"Пользователь '{name}' создан")
+        return result
+
+class OrderService:
+    """Сервис работы с заказами."""
+    def __init__(self, db_url: str = DEFAULT_DB_URL):
+        self.db_url = db_url
+
+    def create_order(self, user_id: int, items: list) -> dict:
+        conn = DatabaseConnection(self.db_url)
+        result = conn.query(
+            "INSERT INTO orders (user_id, items) VALUES (?, ?)", 
+            (user_id, str(items))
+        )
+        logger.info(f"Заказ для user_id={user_id} создан")
+        return result
+
+def main():
+    logger.info("Запуск приложения...\n")
+    
+    user_service = UserService()
+    order_service = OrderService()
+
+    logger.info("─" * 60)
+    logger.info("1️⃣ Создаём пользователя:")
+    user_service.create_user("Alice")
+    id_1 = id(DatabaseConnection())
+
+    logger.info("\n2️⃣ Создаём заказ:")
+    order_service.create_order(user_id=1, items=["item1", "item2"])
+    id_2 = id(DatabaseConnection())
+
+    logger.info("\n🔐 Проверка Singleton:")
+    if id_1 == id_2:
+        logger.info("✅ ВСЕ ССЫЛКИ УКАЗЫВАЮТ НА ОДИН ОБЪЕКТ!")
+    else:
+        logger.error("❌ ОШИБКА: создано несколько экземпляров!")
+
+    DatabaseConnection().close()
+
+if __name__ == "__main__":
+    main()
