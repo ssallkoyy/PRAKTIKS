@@ -1,0 +1,130 @@
+@startuml
+' --- Практика 10: Комплекс UML диаграмм ---
+
+' 1. ДИАГРАММА КЛАССОВ (Class Diagram)
+package "Class Diagram" {
+    class Customer {
+        + Long id
+        + String firstName
+        + String lastName
+        + String email
+        + String phone
+        + List<Order> orders
+        + void createOrder()
+    }
+
+    class Order {
+        + Long id
+        + Customer customer
+        + List<OrderItem> items
+        + LocalDateTime creationDate
+        + OrderStatus status
+        + BigDecimal totalAmount
+        + void calculateTotal()
+        + void changeStatus(OrderStatus newStatus)
+    }
+
+    class OrderItem {
+        + Long id
+        + Product product
+        + Integer quantity
+        + BigDecimal priceAtPurchase
+        + BigDecimal getSubTotal()
+    }
+
+    class Product {
+        + Long id
+        + String name
+        + String description
+        + BigDecimal price
+        + Integer stockQuantity
+        + boolean isAvailable()
+    }
+
+    enum OrderStatus {
+        NEW
+        PAID
+        SHIPPED
+        DELIVERED
+        CANCELLED
+    }
+
+    Customer "1" *-- "0..*" Order : places
+    Order "1" *-- "1..*" OrderItem : contains
+    OrderItem "0..*" o-- "1" Product : references
+    Order ..> OrderStatus : uses
+}
+
+' 2. ДИАГРАММА ПОСЛЕДОВАТЕЛЬНОСТИ (Sequence Diagram)
+' Процесс: Оформление заказа (Checkout Process)
+newpage
+title Диаграмма последовательности: Оформление заказа
+
+actor "Клиент (Customer)" as Client
+boundary "Интерфейс (UI/Frontend)" as UI
+control "Контроллер Заказов (OrderController)" as Ctrl
+entity "Сервис Заказов (OrderService)" as Service
+database "База Данных (Database)" as DB
+
+Client -> UI : Нажимает "Оформить заказ"
+activate UI
+UI -> Ctrl : POST /api/v1/orders (cartDetails)
+activate Ctrl
+
+Ctrl -> Service : createOrder(customerId, items)
+activate Service
+
+Service -> DB : Проверка остатков товаров (Product Stock)
+activate DB
+DB --> Service : Товары в наличии
+deactivate DB
+
+Service -> Service : Рассчитать общую стоимость (calculateTotal)
+
+Service -> DB : Сохранить заказ со статусом NEW
+activate DB
+DB --> Service : OrderОбъект (id, status, total)
+deactivate DB
+
+Service --> Ctrl : OrderDTO
+deactivate Service
+
+Ctrl --> UI : HTTP 201 Created (Order Summary)
+deactivate Ctrl
+
+UI --> Client : Отображение формы оплаты и данных заказа
+deactivate UI
+
+
+' 3. ДИАГРАММА СОСТОЯНИЙ (State Machine Diagram)
+' Объект: Статусы заказа (Order Life Cycle)
+newpage
+title Диаграмма состояний: Жизненный цикл заказа (Статусы)
+
+[*] --> NEW : Создание заказа клиентом
+
+state NEW {
+    [*] --> PendingPayment
+    PendingPayment : Ожидание подтверждения транзакции
+}
+
+NEW --> PAID : [Оплата успешна] / Списание средств
+NEW --> CANCELLED : [Отмена пользователем / Таймаут оплаты]
+
+state PAID {
+    [*] --> Processing
+    Processing : Комплектация заказа на складе
+    Processing --> ReadyForShipment : Сборка завершена
+}
+
+PAID --> CANCELLED : [Отмена администратором / Нет товара на складе] / Возврат средств
+
+READY_FOR_SHIPMENT: Передано в курьерскую службу
+ReadyForShipment --> SHIPPED : Передача перевозчику
+
+SHIPPED --> DELIVERED : [Заказ успешно вручен клиенту]
+
+CANCELLED --> [*]
+DELIVERED --> [*]
+
+@enduml
